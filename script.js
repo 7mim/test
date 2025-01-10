@@ -1,51 +1,103 @@
-body {
-    font-family: 'Arial', sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    background-color: #f4f4f4;
+const calculator = {
+    displayValue: '0',
+    firstOperand: null,
+    waitingForSecondOperand: false,
+    operator: null,
+};
+
+function inputDigit(digit) {
+    const { displayValue, waitingForSecondOperand } = calculator;
+
+    if (waitingForSecondOperand === true) {
+        calculator.displayValue = digit;
+        calculator.waitingForSecondOperand = false;
+    } else {
+        calculator.displayValue = displayValue === '0' ? digit : displayValue + digit;
+    }
 }
 
-.calculator {
-    border-radius: 5px;
-    box-shadow: 0px 0px 20px 0px #000;
+function inputDecimal(dot) {
+    if (calculator.waitingForSecondOperand === true) {
+        calculator.displayValue = "0.";
+        calculator.waitingForSecondOperand = false;
+        return;
+    }
+
+    if (!calculator.displayValue.includes(dot)) {
+        calculator.displayValue += dot;
+    }
 }
 
-.calculator-screen {
-    width: 100%;
-    height: 80px;
-    border: none;
-    background-color: #252525;
-    color: #fff;
-    font-size: 2.5rem;
-    text-align: right;
-    padding-right: 20px;
-    padding-left: 10px;
+function handleOperator(nextOperator) {
+    const { firstOperand, displayValue, operator } = calculator
+    const inputValue = parseFloat(displayValue);
+
+    if (operator && calculator.waitingForSecondOperand)  {
+        calculator.operator = nextOperator;
+        return;
+    }
+
+    if (firstOperand == null && !isNaN(inputValue)) {
+        calculator.firstOperand = inputValue;
+    } else if (operator) {
+        const result = performCalculation[operator](firstOperand, inputValue);
+
+        calculator.displayValue = String(result);
+        calculator.firstOperand = result;
+    }
+
+    calculator.waitingForSecondOperand = true;
+    calculator.operator = nextOperator;
 }
 
-.calculator-buttons button {
-    height: 60px;
-    width: 25%;
-    font-size: 1.5rem;
-    border: 1px solid #252525;
-    background-color: #eaeaea;
-    cursor: pointer;
+const performCalculation = {
+    '/': (firstOperand, secondOperand) => firstOperand / secondOperand,
+    '*': (firstOperand, secondOperand) => firstOperand * secondOperand,
+    '+': (firstOperand, secondOperand) => firstOperand + secondOperand,
+    '-': (firstOperand, secondOperand) => firstOperand - secondOperand,
+    '=': (firstOperand, secondOperand) => secondOperand
+};
+
+function resetCalculator() {
+    calculator.displayValue = '0';
+    calculator.firstOperand = null;
+    calculator.waitingForSecondOperand = false;
+    calculator.operator = null;
 }
 
-.calculator-buttons button.operator {
-    background-color: #ff9500;
-    color: #fff;
+function updateDisplay() {
+    const display = document.querySelector('.calculator-screen');
+    display.value = calculator.displayValue;
 }
 
-.calculator-buttons button.all-clear {
-    background-color: #ff3b30;
-    color: #fff;
-}
+updateDisplay();
 
-.calculator-buttons button.equal-sign {
-    height: 100%;
-    background-color: #ff9500;
-    color: #fff;
-}
+const keys = document.querySelector('.calculator-buttons');
+keys.addEventListener('click', (event) => {
+    const { target } = event;
+
+    if (!target.matches('button')) {
+        return;
+    }
+
+    if (target.classList.contains('operator')) {
+        handleOperator(target.value);
+        updateDisplay();
+        return;
+    }
+
+    if (target.classList.contains('decimal')) {
+        inputDecimal(target.value);
+        updateDisplay();
+        return;
+    }
+
+    if (target.classList.contains('all-clear')) {
+        resetCalculator();
+        updateDisplay();
+        return;
+    }
+
+    inputDigit(target.value);
+    updateDisplay();
+});
